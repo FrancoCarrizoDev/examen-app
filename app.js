@@ -39,6 +39,17 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function iconNode(kind) {
+  const symbol = kind === "cross" ? "✗" : "✓";
+  const colors = kind === "cross"
+    ? "bg-red-400 text-slate-950"
+    : "bg-emerald-400 text-slate-950";
+  const span = document.createElement("span");
+  span.className = `choice-marker ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-black ${colors}`;
+  span.textContent = symbol;
+  return span;
+}
+
 function loadLastResult() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
@@ -111,6 +122,7 @@ function renderQuestion(question, index) {
         >
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-black text-cyan-200 group-hover:bg-cyan-300 group-hover:text-slate-950">${displayKey}</span>
           <span class="text-sm leading-6 text-slate-100">${escapeHtml(choice.text)}</span>
+          <span class="choice-marker"></span>
         </button>
       `;
     })
@@ -197,12 +209,26 @@ function gradeQuestion(questionId, selectedKeys) {
   const buttons = [...card.querySelectorAll(".choice-btn")];
   buttons.forEach((btn) => {
     btn.disabled = true;
-    btn.classList.remove("hover:border-cyan-300", "hover:bg-slate-900");
+    btn.classList.remove(
+      "hover:border-cyan-300",
+      "hover:bg-slate-900",
+      "border-cyan-300",
+      "bg-cyan-950/50",
+      "bg-slate-950/70",
+      "border-slate-700"
+    );
     const key = btn.dataset.choiceKey;
-    if (expectedKeys.includes(key)) {
-      btn.classList.add("border-emerald-400", "bg-emerald-950/40");
-    } else if (selectedKeys.includes(key)) {
-      btn.classList.add("border-red-400", "bg-red-950/40");
+    const isExpected = expectedKeys.includes(key);
+    const isSelected = selectedKeys.includes(key);
+    if (isExpected && isSelected) {
+      btn.classList.add("border-emerald-400", "bg-emerald-950/40", "text-emerald-100");
+      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("check"));
+    } else if (isExpected && !isSelected) {
+      btn.classList.add("border-emerald-400/50", "bg-emerald-950/20", "text-emerald-100/90");
+      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("check"));
+    } else if (!isExpected && isSelected) {
+      btn.classList.add("border-red-400", "bg-red-950/40", "text-red-100");
+      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("cross"));
     } else {
       btn.classList.add("opacity-60");
     }

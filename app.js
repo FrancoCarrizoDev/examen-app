@@ -5,6 +5,7 @@ const state = {
   bank: [],
   exam: [],
   answers: new Map(),
+  currentIndex: 0,
 };
 
 const els = {
@@ -15,6 +16,11 @@ const els = {
   lastResult: document.querySelector("#lastResult"),
   restartBtn: document.querySelector("#restartBtn"),
   errorBox: document.querySelector("#errorBox"),
+  quizNav: document.querySelector("#quizNav"),
+  prevBtn: document.querySelector("#prevBtn"),
+  nextBtn: document.querySelector("#nextBtn"),
+  navLabel: document.querySelector("#navLabel"),
+  questionGrid: document.querySelector("#questionGrid"),
 };
 
 function shuffle(items) {
@@ -148,14 +154,117 @@ function renderQuestion(question, index) {
   `;
 }
 
-function renderQuiz() {
-  els.quiz.innerHTML = state.exam.map(renderQuestion).join("");
+function applyGradedState(card, question, answer) {
+  const { selectedKeys, isCorrect } = answer;
+  const expectedKeys = correctKeys(question);
+  const buttons = [...card.querySelectorAll(".choice-btn")];
+  buttons.forEach((btn) => {
+    btn.disabled = true;
+    btn.classList.remove(
+      "hover:border-cyan-300",
+      "hover:bg-slate-900",
+      "border-cyan-300",
+      "bg-cyan-950/50",
+      "bg-slate-950/70",
+      "border-slate-700"
+    );
+    const key = btn.dataset.choiceKey;
+    const isExpected = expectedKeys.includes(key);
+    const isSelected = selectedKeys.includes(key);
+    if (isExpected && isSelected) {
+      btn.classList.add("border-emerald-400", "bg-emerald-950/40", "text-emerald-100");
+      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("check"));
+    } else if (isExpected && !isSelected) {
+      btn.classList.add("border-emerald-400/50", "bg-emerald-950/20", "text-emerald-100/90");
+      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("check"));
+    } else if (!isExpected && isSelected) {
+      btn.classList.add("border-red-400", "bg-red-950/40", "text-red-100");
+      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("cross"));
+    } else {
+      btn.classList.add("opacity-60");
+    }
+  });
+  const submit = card.querySelector(".check-multiple-btn");
+  if (submit) submit.disabled = true;
+
+  const feedback = card.querySelector(".feedback");
+  feedback.classList.remove("hidden", "border-red-500/40", "bg-red-950/40", "text-red-100", "border-emerald-500/40", "bg-emerald-950/40", "text-emerald-100");
+  feedback.classList.add(
+    ...(isCorrect
+      ? ["border-emerald-500/40", "bg-emerald-950/40", "text-emerald-100"]
+      : ["border-red-500/40", "bg-red-950/40", "text-red-100"])
+  );
+  feedback.innerHTML = `
+    <p class="font-black">${isCorrect ? "Correcto" : "Incorrecto"}</p>
+    <p class="mt-2"><strong>Respuesta correcta${expectedKeys.length > 1 ? "s" : ""}:</strong> ${escapeHtml(correctChoiceText(question))}</p>
+    <p class="mt-2">${escapeHtml(question.justification)}</p>
+    <p class="mt-2 text-xs opacity-80"><strong>Fuente:</strong> ${escapeHtml(question.sourceFile)} ${escapeHtml(question.sourceLine)}</p>
+  `;
+}
+
+function renderGrid() {
+  const tiles = state.exam
+    .map((question, idx) => {
+      const answer = state.answers.get(question.id);
+      const isCurrent = idx === state.currentIndex;
+      let classes =
+        "tile rounded-xl border-2 py-2 text-sm font-black transition focus:outline-none focus:ring-2 focus:ring-cyan-300/60";
+      if (isCurrent) {
+        classes += " border-cyan-300 bg-cyan-300 text-slate-950 scale-105";
+      } else if (answer?.isCorrect) {
+        classes += " border-emerald-500 bg-emerald-950/60 text-emerald-200 hover:bg-emerald-900";
+      } else if (answer) {
+        classes += " border-red-500 bg-red-950/60 text-red-200 hover:bg-red-900";
+      } else {
+        classes += " border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:bg-slate-800";
+      }
+      return `<button type="button" class="${classes}" data-tile-index="${idx}" aria-label="Ir a pregunta ${idx + 1}" aria-current="${isCurrent ? "true" : "false"}">${idx + 1}</button>`;
+    })
+    .join("");
+  els.questionGrid.innerHTML = tiles;
+  els.questionGrid.querySelectorAll(".tile").forEach((btn) => {
+    btn.addEventListener("click", () => navigateTo(Number(btn.dataset.tileIndex)));
+  });
+}
+
+function updateNavLabel() {
+  const total = state.exam.length;
+  const idx = state.currentIndex;
+  els.navLabel.textContent = `Pregunta ${idx + 1} / ${total}`;
+  els.prevBtn.disabled = idx === 0;
+  els.nextBtn.disabled = idx >= total - 1;
+}
+
+function navigateTo(index) {
+  if (index < 0 || index >= state.exam.length || index === state.currentIndex) return;
+  state.currentIndex = index;
+  renderCurrentQuestion();
+  renderGrid();
+  updateNavLabel();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderCurrentQuestion() {
+  const question = state.exam[state.currentIndex];
+  els.quiz.innerHTML = renderQuestion(question, state.currentIndex);
   els.quiz.querySelectorAll(".choice-btn").forEach((button) => {
     button.addEventListener("click", () => handleAnswer(button));
   });
   els.quiz.querySelectorAll(".check-multiple-btn").forEach((button) => {
     button.addEventListener("click", () => handleMultipleSubmit(button));
   });
+  const answer = state.answers.get(question.id);
+  if (answer) {
+    const card = els.quiz.querySelector(`.question-card[data-question-id="${question.id}"]`);
+    applyGradedState(card, question, answer);
+  }
+}
+
+function renderQuiz() {
+  els.quizNav.classList.remove("hidden");
+  renderGrid();
+  renderCurrentQuestion();
+  updateNavLabel();
   updateStats();
 }
 
@@ -203,53 +312,12 @@ function gradeQuestion(questionId, selectedKeys) {
   const question = state.exam.find((q) => q.id === questionId);
   const expectedKeys = correctKeys(question);
   const isCorrect = sameKeySet(selectedKeys, expectedKeys);
-  state.answers.set(questionId, { id: questionId, selectedKeys, isCorrect });
+  const answer = { id: questionId, selectedKeys, isCorrect };
+  state.answers.set(questionId, answer);
 
   const card = els.quiz.querySelector(`.question-card[data-question-id="${questionId}"]`);
-  const buttons = [...card.querySelectorAll(".choice-btn")];
-  buttons.forEach((btn) => {
-    btn.disabled = true;
-    btn.classList.remove(
-      "hover:border-cyan-300",
-      "hover:bg-slate-900",
-      "border-cyan-300",
-      "bg-cyan-950/50",
-      "bg-slate-950/70",
-      "border-slate-700"
-    );
-    const key = btn.dataset.choiceKey;
-    const isExpected = expectedKeys.includes(key);
-    const isSelected = selectedKeys.includes(key);
-    if (isExpected && isSelected) {
-      btn.classList.add("border-emerald-400", "bg-emerald-950/40", "text-emerald-100");
-      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("check"));
-    } else if (isExpected && !isSelected) {
-      btn.classList.add("border-emerald-400/50", "bg-emerald-950/20", "text-emerald-100/90");
-      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("check"));
-    } else if (!isExpected && isSelected) {
-      btn.classList.add("border-red-400", "bg-red-950/40", "text-red-100");
-      btn.querySelector(".choice-marker")?.replaceChildren(iconNode("cross"));
-    } else {
-      btn.classList.add("opacity-60");
-    }
-  });
-  const submit = card.querySelector(".check-multiple-btn");
-  if (submit) submit.disabled = true;
-
-  const feedback = card.querySelector(".feedback");
-  feedback.classList.remove("hidden", "border-red-500/40", "bg-red-950/40", "text-red-100", "border-emerald-500/40", "bg-emerald-950/40", "text-emerald-100");
-  feedback.classList.add(
-    ...(isCorrect
-      ? ["border-emerald-500/40", "bg-emerald-950/40", "text-emerald-100"]
-      : ["border-red-500/40", "bg-red-950/40", "text-red-100"])
-  );
-  feedback.innerHTML = `
-    <p class="font-black">${isCorrect ? "Correcto" : "Incorrecto"}</p>
-    <p class="mt-2"><strong>Respuesta correcta${expectedKeys.length > 1 ? "s" : ""}:</strong> ${escapeHtml(correctChoiceText(question))}</p>
-    <p class="mt-2">${escapeHtml(question.justification)}</p>
-    <p class="mt-2 text-xs opacity-80"><strong>Fuente:</strong> ${escapeHtml(question.sourceFile)} ${escapeHtml(question.sourceLine)}</p>
-  `;
-
+  applyGradedState(card, question, answer);
+  renderGrid();
   updateStats();
 }
 
@@ -257,11 +325,13 @@ function startExam() {
   state.answers.clear();
   state.exam = shuffle(state.bank).slice(0, Math.min(EXAM_SIZE, state.bank.length));
   state.exam = state.exam.map((question) => ({ ...question, choices: shuffle(question.choices) }));
+  state.currentIndex = 0;
   renderQuiz();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showError(message) {
+  els.quizNav.classList.add("hidden");
   els.errorBox.classList.remove("hidden");
   els.errorBox.innerHTML = `
     <p class="font-bold">No pude cargar el banco de preguntas.</p>
@@ -275,6 +345,8 @@ function showError(message) {
 async function init() {
   loadLastResult();
   els.restartBtn.addEventListener("click", startExam);
+  els.prevBtn.addEventListener("click", () => navigateTo(state.currentIndex - 1));
+  els.nextBtn.addEventListener("click", () => navigateTo(state.currentIndex + 1));
 
   try {
     const response = await fetch("data/questions.json", { cache: "no-store" });

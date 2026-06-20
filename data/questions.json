@@ -11,7 +11,8 @@
   ],
   "stats": {
     "byType": {
-      "choice": 171,
+      "choice": 170,
+      "multiple": 1,
       "true-false": 4
     },
     "byModule": {
@@ -19,14 +20,13 @@
       "M3": 88
     },
     "byCorrectKey": {
-      "A": 159,
-      "D": 4,
-      "E": 4,
-      "B": 7,
-      "C": 1
+      "A": 164,
+      "B": 4,
+      "D": 3,
+      "E": 4
     },
-    "multiSelectCount": 16,
-    "singleSelectCount": 159
+    "multiSelectCount": 17,
+    "singleSelectCount": 158
   },
   "questions": [
     {
@@ -2335,11 +2335,11 @@
         }
       ],
       "module": "M4",
-      "topic": "Calidad - Estándares de proceso",
-      "correctKey": "B",
-      "justification": "Per Sommerville (2011, p. 658), los estándares de proceso 'establecen los procesos que deben seguirse durante el desarrollo del software'. El formato del plan del proyecto es un documento que regula el proceso de planificación.",
-      "sourceFile": "m4/modulo4-lectura2.md",
-      "sourceLine": "L240-246",
+      "topic": "Calidad - Estándares de producto",
+      "correctKey": "A",
+      "justification": "Clave de respuesta del propio form (data/_raw/ejemplo-4.json, IsAnswerKey=true en A). La curación original marcó B con cita a m4/modulo4-lectura2.md L240-246 que no existe en el repo.",
+      "sourceFile": "data/_raw/ejemplo-4.json",
+      "sourceLine": "questionInfo.Choices[0].IsAnswerKey",
       "verifiedBy": "opencode-curation-v1"
     },
     {
@@ -2888,10 +2888,10 @@
       ],
       "module": "M4",
       "topic": "Calidad - ISO 9001 (procesos)",
-      "correctKey": "B",
-      "justification": "Per ISO 9001 (Sommerville 2011, p. 661), la 'Adquisición Empresarial' es un proceso de soporte requerido para la conformidad con el estándar ISO 9001.",
-      "sourceFile": "m4/modulo4-lectura2.md",
-      "sourceLine": "L335-351",
+      "correctKey": "A",
+      "justification": "Clave de respuesta del propio form (data/_raw/ejemplo-4.json, IsAnswerKey=true en A). La curación original marcó B con una cita a m4/modulo4-lectura2.md L335-351 que no existe en el repo y contradice el form original.",
+      "sourceFile": "data/_raw/ejemplo-4.json",
+      "sourceLine": "questionInfo.Choices[0].IsAnswerKey",
       "verifiedBy": "opencode-curation-v1"
     },
     {
@@ -3044,10 +3044,10 @@
       ],
       "module": "M4",
       "topic": "Calidad - ISO 9001 (procesos)",
-      "correctKey": "D",
-      "justification": "Per ISO 9001 (Sommerville 2011, p. 661), 'Diseño y Desarrollo' es un proceso de realización del producto que se complementa con la Validación. la opción \"Debe aplicar proceso devalidación del producto.\" (validación del producto) es la más cercana entre las disponibles.",
-      "sourceFile": "m4/modulo4-lectura2.md",
-      "sourceLine": "L335-351",
+      "correctKey": "A",
+      "justification": "Clave de respuesta del propio form (data/_raw/ejemplo-4.json, IsAnswerKey=true en A). La curación original marcó D con la misma cita a m4/modulo4-lectura2.md L335-351 que no existe en el repo.",
+      "sourceFile": "data/_raw/ejemplo-4.json",
+      "sourceLine": "questionInfo.Choices[0].IsAnswerKey",
       "verifiedBy": "opencode-curation-v1"
     },
     {
@@ -3323,10 +3323,10 @@
       ],
       "module": "M4",
       "topic": "Calidad - Métricas del producto",
-      "correctKey": "C",
-      "justification": "Per Sommerville (2011, p. 663), las métricas del producto permiten medir tanto atributos internos (complejidad ciclomática, longitud de identificadores) como atributos externos (mantenibilidad, fiabilidad) del sistema de software.",
-      "sourceFile": "m4/modulo4-lectura2.md",
-      "sourceLine": "L537-551",
+      "correctKey": "A",
+      "justification": "Clave de respuesta del propio form (data/_raw/ejemplo-5.json, IsAnswerKey=true en A). La curación original marcó C con cita a m4/modulo4-lectura2.md L537-551 que no existe en el repo.",
+      "sourceFile": "data/_raw/ejemplo-5.json",
+      "sourceLine": "questionInfo.Choices[0].IsAnswerKey",
       "verifiedBy": "opencode-curation-v1"
     },
     {
@@ -4583,9 +4583,15 @@
       "module": "M3",
       "topic": "Diseño centrado en el usuario - Enfoques Kalbach",
       "correctKey": "A",
-      "justification": "Kalbach (2007) describe cuatro enfoques alternativos al Diseño Centrado en el Usuario (Sommerville 2015, p. 230): Diseño centrado en el diseñador, Diseño centrado en la empresa, Diseño centrado en el contenido y Diseño centrado en la tecnología. Las opciones \"Diseño centrado en el diseñador\", \"Diseño centrado en la empresa\" y \"Diseño centrado en el contenido\" son correctas.",
-      "sourceFile": "m3/modulo3-lectura4.md",
-      "sourceLine": "L249-263",
+      "correctKeys": [
+        "A",
+        "B",
+        "C"
+      ],
+      "type": "multiple",
+      "justification": "Multi-select. Clave de respuesta del propio form (data/_raw/ejemplo-6.json, IsAnswerKey=true en A, B y C). La curación guardó solo A como correctKey aunque la justificación listaba las tres; registrado como multiple en scripts/apply_multiselect_fixes.py.",
+      "sourceFile": "data/_raw/ejemplo-6.json",
+      "sourceLine": "questionInfo.Choices[0..2].IsAnswerKey",
       "verifiedBy": "opencode-curation-v1"
     },
     {
@@ -6805,10 +6811,10 @@
       ],
       "module": "M4",
       "topic": "Calidad - ISO 9001 (procesos)",
-      "correctKey": "B",
-      "justification": "Per ISO 9001 (Sommerville 2011, p. 661), la 'Adquisición Empresarial' es un proceso de soporte requerido para la conformidad con el estándar ISO 9001.",
-      "sourceFile": "m4/modulo4-lectura2.md",
-      "sourceLine": "L335-351",
+      "correctKey": "A",
+      "justification": "Misma pregunta que q-076, duplicada en ejemplo-9. Clave de respuesta del propio form (data/_raw/ejemplo-9.json, IsAnswerKey=true en A).",
+      "sourceFile": "data/_raw/ejemplo-9.json",
+      "sourceLine": "questionInfo.Choices[0].IsAnswerKey",
       "verifiedBy": "opencode-curation-v1"
     },
     {

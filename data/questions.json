@@ -6343,10 +6343,10 @@
       ],
       "module": "M4",
       "topic": "Calidad - ISO 9001 (procesos)",
-      "correctKey": "D",
-      "justification": "Per ISO 9001 (Sommerville 2011, p. 661), 'Diseño y Desarrollo' es un proceso de realización del producto que se complementa con la Validación. la opción \"Debe aplicar Proceso deValidación del Producto\" es la más cercana entre las disponibles.",
-      "sourceFile": "m4/modulo4-lectura2.md",
-      "sourceLine": "L335-351",
+      "correctKey": "A",
+      "justification": "Misma pregunta que q-080, duplicada en ejemplo-9. Clave de respuesta del propio form (data/_raw/ejemplo-9.json, IsAnswerKey=true en A).",
+      "sourceFile": "data/_raw/ejemplo-9.json",
+      "sourceLine": "questionInfo.Choices[0].IsAnswerKey",
       "verifiedBy": "opencode-curation-v1"
     },
     {

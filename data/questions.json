@@ -25,8 +25,8 @@
       "B": 7,
       "C": 1
     },
-    "multiSelectCount": 13,
-    "singleSelectCount": 162
+    "multiSelectCount": 16,
+    "singleSelectCount": 159
   },
   "questions": [
     {
@@ -3580,7 +3580,7 @@
       "formSource": "ejemplo-5",
       "formTitle": "PARCIAL2 EJEMPLO 5- INGENIERÍA DE SOFTWARE",
       "orderInForm": 14,
-      "type": "choice",
+      "type": "multiple",
       "nChoices": 4,
       "incomplete": true,
       "question": "Para valorizar los Sistemas Heredados existen diferentes estrategias. Idenfifica las estrategias que consideres necesarias en la siguiente lista:",
@@ -3608,7 +3608,12 @@
       "justification": "Sommerville (2011, pp. 252-253) describe cuatro opciones estratégicas para los sistemas heredados: 1) Desechar, 2) Dejar sin cambios y continuar mantenimiento regular, 3) Someter a reingeniería, 4) Sustituir. Las opciones A, B y C son todas estrategias válidas; D ('Analizar el sistema actual') no es una estrategia sino parte del proceso de valoración.",
       "sourceFile": "m3/modulo3-lectura3.md",
       "sourceLine": "L165-193",
-      "verifiedBy": "opencode-curation-v1"
+      "verifiedBy": "opencode-curation-v1",
+      "correctKeys": [
+        "A",
+        "B",
+        "C"
+      ]
     },
     {
       "id": "q-095",
@@ -3654,7 +3659,7 @@
       "formSource": "ejemplo-5",
       "formTitle": "PARCIAL2 EJEMPLO 5- INGENIERÍA DE SOFTWARE",
       "orderInForm": 16,
-      "type": "choice",
+      "type": "multiple",
       "nChoices": 5,
       "incomplete": false,
       "question": "Cuando se utilizan Patrones de Diseño, se necesita realizar un Dagrama de Clases donde hay diferentes simbologías. Podes Indicar la simbología que forma parte del Diagrama de clases en la siguiente lista:",
@@ -3686,7 +3691,13 @@
       "justification": "En el modelado orientado a objetos (diagrama de clases) se reconocen los modelos de herencia y modelos de agregado, además de relaciones como agregación, composición y asociación. Las opciones A, B, C y D son válidas; E (Comunicación) no es una simbología estándar de UML.",
       "sourceFile": "m3/modulo3-lectura4.md",
       "sourceLine": "L999-1045",
-      "verifiedBy": "opencode-curation-v1"
+      "verifiedBy": "opencode-curation-v1",
+      "correctKeys": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
     },
     {
       "id": "q-097",
@@ -4178,7 +4189,7 @@
       "formSource": "ejemplo-6",
       "formTitle": "PARCIAL2 EJEMPLO6 INGENIERÍA DE SOFTWARE",
       "orderInForm": 11,
-      "type": "choice",
+      "type": "multiple",
       "nChoices": 5,
       "incomplete": false,
       "question": "Dentro de los Diseños tenemos dos modelos específicos que sirven para configurar una red. Identifica los nombres de los modelos que podes utilizar en Ingenieria del Software",
@@ -4210,7 +4221,11 @@
       "justification": "Para configurar una red, los modelos específicos que menciona Sommerville (2015, pp. 226-227) son el Modelo Cliente-Servidor y el Modelo de Capas. Ambos modelos organizan el sistema con servicios/servidores o capas abstractas respectivamente. Las opciones A y B son las correctas.",
       "sourceFile": "m3/modulo3-lectura4.md",
       "sourceLine": "L1115-1176",
-      "verifiedBy": "opencode-curation-v1"
+      "verifiedBy": "opencode-curation-v1",
+      "correctKeys": [
+        "A",
+        "B"
+      ]
     },
     {
       "id": "q-112",

@@ -9,7 +9,7 @@ Build a curated questions list from the raw pool:
 import json
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_PATH = PROJECT_ROOT / "data" / "questions-raw.json"
 OUT_PATH = PROJECT_ROOT / "data" / "questions-curated.json"
 BATCH_DIR = PROJECT_ROOT / "data" / "_batches"

@@ -123,7 +123,7 @@ def fetch_form(form_id: str) -> dict:
 
 
 def main() -> int:
-    project_root = Path(__file__).resolve().parents[1]
+    project_root = Path(__file__).resolve().parents[2]
     raw_dir = project_root / "data" / "_raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
     output_path = project_root / "data" / "questions-raw.json"

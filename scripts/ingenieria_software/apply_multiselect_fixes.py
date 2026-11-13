@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-QUESTIONS_PATH = PROJECT_ROOT / "data" / "questions.json"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+QUESTIONS_PATH = PROJECT_ROOT / "data" / "banks" / "ingenieria-software-parcial2.json"
 
 FIXES = {
     "q-021": ["A", "B", "C", "D"],

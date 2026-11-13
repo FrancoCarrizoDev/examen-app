@@ -1,0 +1,20 @@
+{
+  "banks": [
+    {
+      "id": "soa-parcial2",
+      "title": "Sistemas Operativos Avanzados – Parcial 2",
+      "subject": "Sistemas Operativos Avanzados",
+      "exam": "Simulador Parcial 2",
+      "description": "20 preguntas al azar de M3 (SO embebidos) y M4 (SO de tiempo real). Feedback inmediato, justificación y último resultado guardado localmente.",
+      "file": "data/banks/soa-parcial2.json"
+    },
+    {
+      "id": "ingenieria-software-parcial2",
+      "title": "Ingeniería de Software – Parcial 2",
+      "subject": "Ingeniería de Software",
+      "exam": "Simulador Parcial 2",
+      "description": "20 preguntas al azar desde el banco curado de M3 y M4. Feedback inmediato, justificación y último resultado guardado localmente.",
+      "file": "data/banks/ingenieria-software-parcial2.json"
+    }
+  ]
+}

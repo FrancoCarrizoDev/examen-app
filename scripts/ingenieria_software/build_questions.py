@@ -1,14 +1,14 @@
-"""Merge curated answer batches into data/questions.json."""
+"""Merge curated answer batches into data/banks/ingenieria-software-parcial2.json."""
 
 import json
 from collections import Counter
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CURATED_BASE = PROJECT_ROOT / "data" / "questions-curated.json"
 BATCH_DIR = PROJECT_ROOT / "data" / "_batches"
-OUTPUT = PROJECT_ROOT / "data" / "questions.json"
+OUTPUT = PROJECT_ROOT / "data" / "banks" / "ingenieria-software-parcial2.json"
 
 
 def main() -> None:

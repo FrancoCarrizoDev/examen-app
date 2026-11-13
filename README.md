@@ -1,6 +1,6 @@
-# Parcial 2 Quiz
+# examen-app
 
-Mini simulador para estudiar el Parcial 2 de Ingeniería de Software.
+Simulador de parciales multiple choice para varias materias. Se elige la materia y el parcial en el selector de arriba (o con `?bank=<id>` en la URL).
 
 ## Cómo usar
 
@@ -44,21 +44,39 @@ git push
 ./scripts/update_raspberry.sh
 ```
 
-El script entra por SSH a la Raspberry y ejecuta `git pull --ff-only` en `/home/fran/parcial2-quiz`. No copia archivos.
+El script entra por SSH a la Raspberry y ej## Bancos
 
-## Banco
+- `data/banks.json`: lista de bancos que aparecen en el selector (id, título, materia, descripción y archivo).
+- `data/banks/<id>.json`: preguntas de cada banco.
+- Cada banco guarda su último resultado por separado en `localStorage`.
 
-- `data/questions-raw.json`: extracción cruda de los 9 Microsoft Forms.
-- `data/questions.json`: banco curado usado por la app.
-- Preguntas finales: 175.
-- M3: 88 preguntas.
-- M4: 87 preguntas.
-- Se excluyó `q-109` porque el form solo traía `Opción 1`.
+| Banco | Origen |
+| --- | --- |
+| `ingenieria-software-parcial2` | Microsoft Forms curados con `scripts/ingenieria_software/` y `knowledge/ingenieria_software/`. 175 preguntas (M3: 88, M4: 87). |
+| `soa-parcial2` | Lecturas de SOA; fuente en `facu/sistemas_operativos_avanzados/parcial2-quiz/scripts/`. |
+
+### Agregar una materia
+
+1. En la carpeta de la materia, crear un script que use `scripts/bank_builder.py` (formato documentado ahí):
+
+   ```python
+   import sys; sys.path.insert(0, "/ruta/a/examen-app/scripts")
+   from bank_builder import Bank
+   bank = Bank("aud", sources={"M1L1": "Módulo 1 - Lectura 1"})
+   q = bank.q
+   q("M1L1", "Tema", "¿Enunciado?", "Correcta.", ["Incorrecta 1.", "Incorrecta 2.", "Incorrecta 3.", "Incorrecta 4."], "Justificación.")
+   bank.build("auditoria-parcial1", "Banco para practicar ...")
+   ```
+
+2. Agregar la entrada en `data/banks.json`.
+3. Al generar, `build()` avisa si la respuesta correcta suele ser la opción más larga (señal de distractores flojos).
+
+a `Opción 1`.
 - Se eliminaron duplicados y se conservó la primera aparición.
 
 ## Funcionamiento
 
-- Sortea 20 preguntas al azar.
+- Sortea 20 preguntas al azar del banco elegido.
 - Randomiza el orden de las opciones.
 - Muestra feedback inmediato.
 - Guarda el último resultado en `localStorage`.

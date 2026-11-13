@@ -1,7 +1,12 @@
 const EXAM_SIZE = 20;
-const STORAGE_KEY = "parcial2Quiz:lastResult";
+const BANKS_URL = "data/banks.json";
+const LAST_BANK_KEY = "examenApp:lastBank";
+// Claves viejas (cuando la app tenía un solo banco), para no perder el último resultado.
+const LEGACY_KEYS = { "ingenieria-software-parcial2": "parcial2Quiz:lastResult" };
 
 const state = {
+  banks: [],
+  bankId: null,
   bank: [],
   exam: [],
   answers: new Map(),
@@ -9,6 +14,10 @@ const state = {
 };
 
 const els = {
+  bankSelect: document.querySelector("#bankSelect"),
+  subjectLabel: document.querySelector("#subjectLabel"),
+  examTitle: document.querySelector("#examTitle"),
+  examDescription: document.querySelector("#examDescription"),
   quiz: document.querySelector("#quiz"),
   bankCount: document.querySelector("#bankCount"),
   answeredCount: document.querySelector("#answeredCount"),
@@ -56,8 +65,35 @@ function iconNode(kind) {
   return span;
 }
 
+function storageKey() {
+  return `examenApp:${state.bankId}:lastResult`;
+}
+
+function storageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(key, value) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    // Sin storage (modo privado, etc.): la app sigue funcionando sin recordar resultados.
+  }
+}
+
 function loadLastResult() {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  els.lastResult.textContent = "Sin datos";
+  let raw = storageGet(storageKey());
+  const legacy = LEGACY_KEYS[state.bankId];
+  if (!raw && legacy && storageGet(legacy)) {
+    raw = storageGet(legacy);
+    storageSet(storageKey(), raw);
+  }
   if (!raw) return;
   try {
     const result = JSON.parse(raw);
@@ -67,7 +103,7 @@ function loadLastResult() {
     });
     els.lastResult.textContent = `${result.score}/${result.total} (${date})`;
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    storageSet(storageKey(), null);
   }
 }
 
@@ -75,8 +111,8 @@ function saveResult() {
   const answered = [...state.answers.values()];
   const score = answered.filter((answer) => answer.isCorrect).length;
   const missedIds = answered.filter((answer) => !answer.isCorrect).map((answer) => answer.id);
-  localStorage.setItem(
-    STORAGE_KEY,
+  storageSet(
+    storageKey(),
     JSON.stringify({
       finishedAt: new Date().toISOString(),
       score,
@@ -112,6 +148,12 @@ function isMultiple(question) {
   return correctKeys(question).length > 1 || question.type === "multiple";
 }
 
+function typeLabel(question) {
+  if (question.type === "true-false") return "Verdadero / Falso";
+  if (isMultiple(question)) return `Opción múltiple (${correctKeys(question).length} correctas)`;
+  return "Opción simple";
+}
+
 function renderQuestion(question, index) {
   const choices = shuffle(question.choices);
   const multiple = isMultiple(question);
@@ -138,7 +180,7 @@ function renderQuestion(question, index) {
     <article class="question-card rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl shadow-slate-950/30" data-question-id="${question.id}">
       <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p class="text-xs font-bold uppercase tracking-widest text-cyan-300">Pregunta ${index + 1} · ${escapeHtml(question.module)} · ${escapeHtml(question.type)}</p>
+          <p class="text-xs font-bold uppercase tracking-widest text-cyan-300">Pregunta ${index + 1} · ${escapeHtml(question.module)} · ${escapeHtml(typeLabel(question))}</p>
           <h2 class="mt-2 text-lg font-bold leading-7 text-white">${escapeHtml(question.question)}</h2>
         </div>
         <span class="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-300">${escapeHtml(question.topic)}</span>
@@ -241,7 +283,11 @@ function navigateTo(index) {
   renderCurrentQuestion();
   renderGrid();
   updateNavLabel();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  // Solo mover la vista si el enunciado quedó fuera de pantalla (por ej. al usar botones de abajo).
+  const top = els.quiz.getBoundingClientRect().top;
+  if (top < 0 || top > window.innerHeight * 0.6) {
+    els.quiz.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function renderCurrentQuestion() {
@@ -338,23 +384,68 @@ function showError(message) {
     <p class="mt-2">${escapeHtml(message)}</p>
     <p class="mt-2">Si abriste el archivo con doble click y el navegador bloquea <code>fetch</code>, levantá un server local con:</p>
     <pre class="mt-2 overflow-x-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">python3 -m http.server 8000</pre>
-    <p class="mt-2">Después abrí <code>http://localhost:8000</code> desde la carpeta <code>parcial2-quiz</code>.</p>
+    <p class="mt-2">Después abrí <code>http://localhost:8000</code> desde la carpeta <code>examen-app</code>.</p>
   `;
 }
 
-async function init() {
+function pickBankId() {
+  const ids = state.banks.map((b) => b.id);
+  const fromUrl = new URLSearchParams(window.location.search).get("bank");
+  if (ids.includes(fromUrl)) return fromUrl;
+  const last = storageGet(LAST_BANK_KEY);
+  if (ids.includes(last)) return last;
+  return ids[0];
+}
+
+function renderBankSelect() {
+  els.bankSelect.innerHTML = state.banks
+    .map((b) => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.title)}</option>`)
+    .join("");
+  els.bankSelect.value = state.bankId;
+  els.bankSelect.classList.toggle("hidden", state.banks.length < 2);
+}
+
+async function loadBank(bankId) {
+  const meta = state.banks.find((b) => b.id === bankId);
+  state.bankId = bankId;
+  els.bankSelect.value = bankId;
+  storageSet(LAST_BANK_KEY, bankId);
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("bank", bankId);
+  window.history.replaceState(null, "", url);
+
+  els.subjectLabel.textContent = meta.subject;
+  els.examTitle.textContent = meta.exam;
+  els.examDescription.textContent = meta.description;
+  document.title = `${meta.exam} - ${meta.subject}`;
+  els.errorBox.classList.add("hidden");
+  els.bankCount.textContent = "-";
   loadLastResult();
+
+  const response = await fetch(meta.file, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status} al cargar ${meta.file}`);
+  const data = await response.json();
+  state.bank = data.questions.filter((q) => q.correctKey && q.choices?.length >= 2);
+  els.bankCount.textContent = String(state.bank.length);
+  startExam();
+}
+
+async function init() {
   els.restartBtn.addEventListener("click", startExam);
   els.prevBtn.addEventListener("click", () => navigateTo(state.currentIndex - 1));
   els.nextBtn.addEventListener("click", () => navigateTo(state.currentIndex + 1));
+  els.bankSelect.addEventListener("change", () => {
+    loadBank(els.bankSelect.value).catch((error) => showError(error.message));
+  });
 
   try {
-    const response = await fetch("data/questions.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    state.bank = data.questions.filter((q) => q.correctKey && q.choices?.length >= 2);
-    els.bankCount.textContent = String(state.bank.length);
-    startExam();
+    const response = await fetch(BANKS_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status} al cargar ${BANKS_URL}`);
+    state.banks = (await response.json()).banks;
+    state.bankId = pickBankId();
+    renderBankSelect();
+    await loadBank(state.bankId);
   } catch (error) {
     showError(error.message);
   }

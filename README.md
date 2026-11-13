@@ -53,6 +53,7 @@ El script entra por SSH a la Raspberry y ej## Bancos
 | Banco | Origen |
 | --- | --- |
 | `ingenieria-software-parcial2` | Microsoft Forms curados con `scripts/ingenieria_software/` y `knowledge/ingenieria_software/`. 175 preguntas (M3: 88, M4: 87). |
+| `auditoria-parcial2` | Lecturas M3 y M4 de Auditoría + preguntero de Studocu; fuente en `facu/auditoria_de_sistemas/parcial2-quiz/scripts/`. |
 | `soa-parcial2` | Lecturas de SOA; fuente en `facu/sistemas_operativos_avanzados/parcial2-quiz/scripts/`. |
 
 ### Agregar una materia
@@ -69,7 +70,7 @@ El script entra por SSH a la Raspberry y ej## Bancos
    ```
 
 2. Agregar la entrada en `data/banks.json`.
-3. Al generar, `build()` avisa si la respuesta correcta suele ser la opción más larga (señal de distractores flojos).
+3. Al generar, `build()` avisa si la respuesta correcta suele ser la opción más larga o la más corta (señal de que se delata por el largo).
 
 a `Opción 1`.
 - Se eliminaron duplicados y se conservó la primera aparición.

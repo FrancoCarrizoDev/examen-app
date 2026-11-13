@@ -108,16 +108,19 @@ def length_report(questions, verbose=False):
     singles = [q for q in questions if q["type"] == "choice"]
     if not singles:
         return
-    flagged = []
+    longest, shortest = [], []
     for q in singles:
         lens = {c["key"]: len(c["text"]) for c in q["choices"]}
         right = lens[q["correctKey"]]
-        wrong = max(v for k, v in lens.items() if k != q["correctKey"])
-        if right > wrong:
-            flagged.append((right - wrong, q["id"], q["question"]))
-    share = len(flagged) / len(singles)
+        wrong = [v for k, v in lens.items() if k != q["correctKey"]]
+        if right > max(wrong):
+            longest.append((right - max(wrong), q["id"], q["question"]))
+        if right < min(wrong):
+            shortest.append((min(wrong) - right, q["id"], q["question"]))
     chance = sum(1 / len(q["choices"]) for q in singles) / len(singles)
-    print(f"Correcta = opción más larga en {share:.0%} de las de opción simple (por azar ≈ {chance:.0%}).")
-    if share > chance + 0.15 or verbose:
-        for diff, qid, text in sorted(flagged, reverse=True)[:15]:
-            print(f"  +{diff:>3} caracteres  {qid}  {text[:80]}")
+    for label, items, sign in (("larga", longest, "+"), ("corta", shortest, "-")):
+        share = len(items) / len(singles)
+        print(f"Correcta = opción más {label} en {share:.0%} de las de opción simple (por azar ≈ {chance:.0%}).")
+        if share > chance + 0.15 or verbose:
+            for diff, qid, text in sorted(items, reverse=True)[:15]:
+                print(f"  {sign}{diff:>3} caracteres  {qid}  {text[:80]}")

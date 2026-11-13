@@ -1,6 +1,14 @@
 {
   "banks": [
     {
+      "id": "auditoria-parcial2",
+      "title": "Auditoría de Sistemas – Parcial 2",
+      "subject": "Auditoría de Sistemas",
+      "exam": "Simulador Parcial 2",
+      "description": "20 preguntas al azar de M3 (marco jurídico, delitos, EDI/TEF, auditoría jurídica, COBIT) y M4 (auditoría física, ofimática, BD y aplicaciones, seguridad y redes).",
+      "file": "data/banks/auditoria-parcial2.json"
+    },
+    {
       "id": "soa-parcial2",
       "title": "Sistemas Operativos Avanzados – Parcial 2",
       "subject": "Sistemas Operativos Avanzados",

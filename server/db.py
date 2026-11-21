@@ -40,6 +40,20 @@ CREATE TABLE IF NOT EXISTS questions (
   data     TEXT NOT NULL,
   PRIMARY KEY (bank_id, id)
 );
+
+-- Cada respuesta corregida, en el momento (no hace falta terminar el examen).
+-- Alimenta las estadísticas por área/tema. Sin FK a questions: al reimportar un banco
+-- se borran y recrean sus preguntas, y el historial tiene que sobrevivir.
+CREATE TABLE IF NOT EXISTS answers (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  profile_id   INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  bank_id      TEXT NOT NULL REFERENCES banks(id) ON DELETE CASCADE,
+  question_id  TEXT NOT NULL,
+  selected     TEXT NOT NULL,
+  is_correct   INTEGER NOT NULL,
+  answered_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS answers_profile_bank ON answers (profile_id, bank_id, answered_at);
 """
 
 

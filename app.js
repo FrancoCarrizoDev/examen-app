@@ -21,6 +21,10 @@ const state = {
   exam: [],
   answers: new Map(),
   currentIndex: 0,
+  // Historial de respuestas del banco actual ({questionId, isCorrect, answeredAt}), para estadísticas.
+  history: [],
+  // "normal" o "weak" (práctica de temas flojos).
+  mode: "normal",
 };
 
 const els = {
@@ -46,6 +50,9 @@ const els = {
   newProfileForm: document.querySelector("#newProfileForm"),
   newProfileName: document.querySelector("#newProfileName"),
   profileError: document.querySelector("#profileError"),
+  statsBtn: document.querySelector("#statsBtn"),
+  statsPanel: document.querySelector("#statsPanel"),
+  modeLabel: document.querySelector("#modeLabel"),
 };
 
 async function api(path, options = {}) {
@@ -178,7 +185,8 @@ function updateStats() {
   const score = answered.filter((answer) => answer.isCorrect).length;
   els.answeredCount.textContent = `${answered.length}/${state.exam.length}`;
   els.scoreCount.textContent = String(score);
-  if (answered.length === state.exam.length && state.exam.length > 0) {
+  // El "Último" resultado es el de exámenes normales; la práctica de flojos no cuenta.
+  if (answered.length === state.exam.length && state.exam.length > 0 && state.mode === "normal") {
     saveResult();
   }
 }
@@ -410,11 +418,293 @@ function gradeQuestion(questionId, selectedKeys) {
   const answer = { id: questionId, selectedKeys, isCorrect };
   state.answers.set(questionId, answer);
   markSeen(questionId);
+  recordAnswer(question, selectedKeys, isCorrect);
 
   const card = els.quiz.querySelector(`.question-card[data-question-id="${questionId}"]`);
   applyGradedState(card, question, answer);
   renderGrid();
   updateStats();
+}
+
+// ---------- Historial y estadísticas por área/tema ----------
+// Cada respuesta se guarda apenas se corrige: con servidor va a la tabla `answers` (si falla la red
+// queda en una cola local y se reintenta); en modo estático vive en localStorage.
+
+const RECENT_WINDOW = 10; // el % de cada grupo mira sus últimas N respuestas
+const MIN_ANSWERS = 3; // con menos respuestas el semáforo queda en gris ("pocos datos")
+
+function historyKey() {
+  return `examenApp:history:${scope()}`;
+}
+
+function outboxKey() {
+  return `examenApp:outbox:${scope()}`;
+}
+
+function readJson(key, fallback) {
+  try {
+    return JSON.parse(storageGet(key) || "null") ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+// Un solo envío a la vez: si se responde rápido, la segunda llamada espera a la primera
+// y vuelve a leer la cola, así ninguna respuesta se manda dos veces.
+let flushing = Promise.resolve();
+
+function flushOutbox() {
+  flushing = flushing.then(sendOutbox, sendOutbox);
+  return flushing;
+}
+
+async function sendOutbox() {
+  if (!state.server || !state.profileId || !state.bankId) return;
+  const key = outboxKey();
+  const pending = readJson(key, []);
+  while (pending.length) {
+    try {
+      await api("answers", { method: "POST", body: pending[0] });
+    } catch (error) {
+      // 404 = pregunta o perfil que ya no existen: se descarta. Otro error (red): se reintenta después.
+      if (!/inexistente/.test(error.message)) break;
+    }
+    pending.shift();
+    storageSet(key, pending.length ? JSON.stringify(pending) : null);
+  }
+}
+
+async function loadHistory() {
+  const bankId = state.bankId;
+  let history;
+  if (state.server) {
+    await flushOutbox();
+    const pending = readJson(outboxKey(), []).map((a) => ({
+      questionId: a.questionId,
+      isCorrect: a.isCorrect,
+      answeredAt: a.answeredAt,
+    }));
+    history = [...(await api(`answers?${qs({ profile: state.profileId, bank: bankId })}`)), ...pending];
+  } else {
+    history = readJson(historyKey(), []);
+  }
+  if (bankId === state.bankId) state.history = history;
+}
+
+function recordAnswer(question, selectedKeys, isCorrect) {
+  const entry = { questionId: question.id, isCorrect, answeredAt: new Date().toISOString() };
+  state.history.push(entry);
+  if (state.server) {
+    const key = outboxKey();
+    const pending = readJson(key, []);
+    pending.push({ profileId: state.profileId, bankId: state.bankId, selectedKeys, ...entry });
+    storageSet(key, JSON.stringify(pending));
+    flushOutbox();
+  } else {
+    storageSet(historyKey(), JSON.stringify(state.history));
+  }
+  if (!els.statsPanel.classList.contains("hidden")) renderStats();
+}
+
+async function resetHistory() {
+  if (!confirm("¿Borrar todas las estadísticas de esta materia? No se puede deshacer.")) return;
+  if (state.server) {
+    await api(`answers?${qs({ profile: state.profileId, bank: state.bankId })}`, { method: "DELETE" });
+    storageSet(outboxKey(), null);
+  } else {
+    storageSet(historyKey(), null);
+  }
+  state.history = [];
+  renderStats();
+}
+
+// Área = agrupación curada del banco (campo "area"); si el banco no la tiene, el módulo.
+function areaOf(question) {
+  return question.area || question.module || "General";
+}
+
+function summarize(answers, questionIds) {
+  const recent = answers.slice(-RECENT_WINDOW);
+  const answeredIds = new Set(answers.map((a) => a.questionId));
+  return {
+    total: answers.length,
+    correct: answers.filter((a) => a.isCorrect).length,
+    recentTotal: recent.length,
+    recentCorrect: recent.filter((a) => a.isCorrect).length,
+    pct: recent.length ? Math.round((100 * recent.filter((a) => a.isCorrect).length) / recent.length) : null,
+    covered: questionIds.filter((id) => answeredIds.has(id)).length,
+    size: questionIds.length,
+  };
+}
+
+function computeStats() {
+  const byId = new Map(state.bank.map((q) => [q.id, q]));
+  const groups = new Map(); // área -> { ids, answers, topics: Map(tema -> { ids, answers }) }
+  for (const q of state.bank) {
+    const area = areaOf(q);
+    if (!groups.has(area)) groups.set(area, { ids: [], answers: [], topics: new Map() });
+    const group = groups.get(area);
+    group.ids.push(q.id);
+    if (!group.topics.has(q.topic)) group.topics.set(q.topic, { ids: [], answers: [] });
+    group.topics.get(q.topic).ids.push(q.id);
+  }
+  for (const answer of state.history) {
+    const q = byId.get(answer.questionId);
+    if (!q) continue;
+    const group = groups.get(areaOf(q));
+    group.answers.push(answer);
+    group.topics.get(q.topic).answers.push(answer);
+  }
+  const areas = [...groups].map(([name, g]) => ({
+    name,
+    ...summarize(g.answers, g.ids),
+    topics: [...g.topics].map(([topic, t]) => ({ name: topic, ...summarize(t.answers, t.ids) })),
+  }));
+  const known = state.history.filter((a) => byId.has(a.questionId));
+  return { overall: summarize(known, state.bank.map((q) => q.id)), areas };
+}
+
+function light(stat) {
+  if (stat.total < MIN_ANSWERS) return { key: "none", label: "Pocos datos", cls: "bg-slate-600" };
+  if (stat.pct < 60) return { key: "red", label: "Flojo", cls: "bg-red-500" };
+  if (stat.pct < 80) return { key: "amber", label: "Regular", cls: "bg-amber-400" };
+  return { key: "green", label: "Bien", cls: "bg-emerald-400" };
+}
+
+// Orden: primero lo más flojo; los que tienen pocos datos al final.
+function byWeakness(a, b) {
+  const rank = (s) => (s.total < MIN_ANSWERS ? 1000 + s.total : s.pct);
+  return rank(a) - rank(b) || b.total - a.total || a.name.localeCompare(b.name);
+}
+
+function statLine(stat) {
+  if (!stat.total) return "Sin respuestas todavía";
+  const recent = stat.total > stat.recentTotal ? ` · últimas ${stat.recentTotal}: ${stat.recentCorrect}/${stat.recentTotal}` : "";
+  return `${stat.correct}/${stat.total} bien${recent} · vistas ${stat.covered}/${stat.size}`;
+}
+
+function bar(stat, light) {
+  const width = stat.pct ?? 0;
+  return `<div class="h-2 w-full overflow-hidden rounded-full bg-slate-800"><div class="h-full rounded-full ${light.cls}" style="width:${width}%"></div></div>`;
+}
+
+function renderStats() {
+  const { overall, areas } = computeStats();
+  areas.sort(byWeakness);
+  const counts = { red: 0, amber: 0, green: 0, none: 0 };
+  areas.forEach((a) => counts[light(a).key]++);
+  const weak = areas.filter((a) => ["red", "amber"].includes(light(a).key));
+
+  const areaHtml = areas
+    .map((area) => {
+      const l = light(area);
+      const topics = area.topics
+        .sort(byWeakness)
+        .map((t) => {
+          const tl = light(t);
+          return `
+            <li class="flex items-center gap-3 py-2">
+              <span class="h-2.5 w-2.5 shrink-0 rounded-full ${tl.cls}" title="${tl.label}"></span>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold leading-snug text-slate-200">${escapeHtml(t.name)}</p>
+                <p class="text-xs text-slate-400">${escapeHtml(statLine(t))}</p>
+              </div>
+              <span class="w-12 shrink-0 text-right text-sm font-black text-slate-200">${t.pct === null ? "–" : `${t.pct}%`}</span>
+            </li>`;
+        })
+        .join("");
+      return `
+        <details class="group rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+          <summary class="flex cursor-pointer list-none items-center gap-3">
+            <span class="h-3 w-3 shrink-0 rounded-full ${l.cls}" title="${l.label}"></span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-3">
+                <p class="font-bold leading-snug text-white">${escapeHtml(area.name)}</p>
+                <p class="shrink-0 text-lg font-black text-white">${area.pct === null ? "–" : `${area.pct}%`}</p>
+              </div>
+              <div class="mt-2">${bar(area, l)}</div>
+              <p class="mt-1 text-xs text-slate-400">${escapeHtml(statLine(area))} · <span class="font-semibold">${l.label}</span></p>
+            </div>
+            <span class="shrink-0 text-slate-500 transition group-open:rotate-90">›</span>
+          </summary>
+          <ul class="mt-3 divide-y divide-slate-800 border-t border-slate-800">${topics}</ul>
+        </details>`;
+    })
+    .join("");
+
+  els.statsPanel.innerHTML = `
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h2 class="text-xl font-black text-white">Mis estadísticas</h2>
+        <p class="mt-1 text-sm text-slate-300">
+          ${overall.total ? `${overall.correct}/${overall.total} respuestas bien en total · viste ${overall.covered} de ${overall.size} preguntas.` : "Todavía no respondiste preguntas de esta materia."}
+        </p>
+        <p class="mt-1 text-xs text-slate-400">El % de cada área mira sus últimas ${RECENT_WINDOW} respuestas, así lo que mejoraste se nota. Rojo &lt; 60% · amarillo &lt; 80% · verde ≥ 80% · gris: menos de ${MIN_ANSWERS} respuestas.</p>
+      </div>
+      <div class="flex shrink-0 gap-2">
+        <button id="weakBtn" type="button" ${weak.length ? "" : "disabled"} class="rounded-2xl bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">Practicar temas flojos</button>
+        <button id="resetStatsBtn" type="button" ${overall.total ? "" : "disabled"} class="rounded-2xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-300 transition hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40">Borrar</button>
+      </div>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+      <span class="rounded-full border border-slate-700 px-3 py-1"><span class="mr-1 inline-block h-2 w-2 rounded-full bg-red-500"></span>${counts.red} flojas</span>
+      <span class="rounded-full border border-slate-700 px-3 py-1"><span class="mr-1 inline-block h-2 w-2 rounded-full bg-amber-400"></span>${counts.amber} regulares</span>
+      <span class="rounded-full border border-slate-700 px-3 py-1"><span class="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-400"></span>${counts.green} bien</span>
+      <span class="rounded-full border border-slate-700 px-3 py-1"><span class="mr-1 inline-block h-2 w-2 rounded-full bg-slate-600"></span>${counts.none} con pocos datos</span>
+    </div>
+    <div class="mt-4 space-y-3">${areaHtml}</div>
+  `;
+  els.statsPanel.querySelector("#weakBtn").addEventListener("click", () => {
+    toggleStats(false);
+    startExam("weak");
+  });
+  els.statsPanel.querySelector("#resetStatsBtn").addEventListener("click", () => {
+    resetHistory().catch((error) => alert(error.message));
+  });
+}
+
+function toggleStats(show = els.statsPanel.classList.contains("hidden")) {
+  els.statsPanel.classList.toggle("hidden", !show);
+  els.statsBtn.setAttribute("aria-expanded", String(show));
+  if (show) {
+    renderStats();
+    els.statsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+// Práctica de temas flojos: prioriza preguntas de áreas en rojo/amarillo (y sus temas flojos),
+// las que fallaste la última vez que las respondiste y, dentro de eso, las que todavía no viste.
+function buildWeakExam(bank, size) {
+  const { areas } = computeStats();
+  const weakness = (s) => (s.total < MIN_ANSWERS ? 0.4 : 1 - s.pct / 100);
+  const areaWeak = new Map(areas.map((a) => [a.name, weakness(a)]));
+  const topicWeak = new Map(areas.flatMap((a) => a.topics.map((t) => [`${a.name}|${t.name}`, weakness(t)])));
+  const last = new Map(state.history.map((a) => [a.questionId, a.isCorrect]));
+  const scored = bank.map((q) => {
+    const area = areaOf(q);
+    let score = 2 * areaWeak.get(area) + topicWeak.get(`${area}|${q.topic}`);
+    if (last.get(q.id) === false) score += 1;
+    else if (last.get(q.id) === true) score -= 0.5;
+    else score += 0.3; // sin ver: suma algo nuevo del área, no solo repasar errores
+    return { q, score: score + Math.random() * 0.6 };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  // Tope por área (60% del examen) para que la peor no tape a las demás flojas; si no alcanza, se completa igual.
+  const cap = Math.ceil(size * 0.6);
+  const perArea = new Map();
+  const picked = [];
+  for (const { q } of scored) {
+    if (picked.length >= size) break;
+    const n = perArea.get(areaOf(q)) ?? 0;
+    if (n >= cap) continue;
+    perArea.set(areaOf(q), n + 1);
+    picked.push(q);
+  }
+  for (const { q } of scored) {
+    if (picked.length >= size) break;
+    if (!picked.includes(q)) picked.push(q);
+  }
+  return shuffle(picked);
 }
 
 function randomInt([min, max]) {
@@ -519,12 +809,17 @@ function resetSeen() {
   storageSet(seenKey(), null);
 }
 
-function startExam() {
+function startExam(mode = "normal") {
   if (!state.bank.length) return;
+  state.mode = mode;
   state.answers.clear();
   // Si ya viste todo el banco, se reinicia el historial.
   if (state.bank.every((q) => state.seen.has(q.id))) resetSeen();
-  state.exam = buildExam(state.bank, state.config, state.seen);
+  state.exam =
+    mode === "weak"
+      ? buildWeakExam(state.bank, state.config.size)
+      : buildExam(state.bank, state.config, state.seen);
+  els.modeLabel.textContent = mode === "weak" ? "Práctica · temas flojos" : "Navegación";
   state.exam = state.exam.map((question) => ({ ...question, choices: shuffle(question.choices) }));
   state.currentIndex = 0;
   renderQuiz();
@@ -584,7 +879,8 @@ function renderProfiles() {
 // Pantalla "¿Quién sos?": se muestra la primera vez en cada navegador o al pedir un perfil nuevo.
 function showProfileGate(show) {
   els.profileGate.classList.toggle("hidden", !show);
-  for (const id of ["status", "quizNav", "quiz", "restartBtn", "bankSelect"]) {
+  if (show) els.statsPanel.classList.add("hidden");
+  for (const id of ["status", "quizNav", "quiz", "restartBtn", "bankSelect", "statsBtn"]) {
     document.getElementById(id).classList.toggle("hidden", show);
   }
   if (show) {
@@ -682,7 +978,16 @@ async function loadBank(bankId) {
   state.config = { ...DEFAULT_CONFIG, ...(data.config ?? {}) };
   state.bank = data.questions.filter((q) => (q.correctKey || q.correctKeys?.length) && q.choices?.length >= 2);
   loadSeen();
+  state.history = [];
+  try {
+    await loadHistory();
+  } catch (error) {
+    // Sin historial igual se puede rendir; las respuestas nuevas quedan en la cola local.
+    console.warn("No pude cargar el historial:", error);
+  }
+  if (bankId !== state.bankId) return;
   els.bankCount.textContent = String(state.bank.length);
+  if (!els.statsPanel.classList.contains("hidden")) renderStats();
   startExam();
 }
 
@@ -750,7 +1055,9 @@ async function init() {
   initTheme();
   document.addEventListener("keydown", handleKeydown);
   document.addEventListener("keyup", handleKeyup);
-  els.restartBtn.addEventListener("click", startExam);
+  els.restartBtn.addEventListener("click", () => startExam());
+  els.statsBtn.addEventListener("click", () => toggleStats());
+  window.addEventListener("online", () => flushOutbox());
   els.prevBtn.addEventListener("click", () => navigateTo(state.currentIndex - 1));
   els.nextBtn.addEventListener("click", () => navigateTo(state.currentIndex + 1));
   els.bankSelect.addEventListener("change", () => {

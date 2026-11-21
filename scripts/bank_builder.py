@@ -17,6 +17,9 @@ Formato de q(src, topic, question, correct, wrong, just):
 - El módulo se toma de los dos primeros caracteres de src ("M3L1" -> "M3").
 - La app mezcla las opciones, así que da igual el orden en que se cargan.
 
+Áreas: si existe data/areas/<bank_id>.json ({área: [temas]}), build() le agrega "area" a cada
+pregunta (agrupa temas chicos para las estadísticas). Todo tema tiene que tener área.
+
 distractors (opcional): {texto original de la correcta: (nueva correcta o None, [incorrectas])}
 para reemplazar distractores sin tocar el enunciado. Ver build() para el control de sesgo.
 """
@@ -26,6 +29,24 @@ from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 BANKS_DIR = APP_ROOT / "data" / "banks"
+AREAS_DIR = APP_ROOT / "data" / "areas"
+
+
+def apply_areas(bank_id, questions):
+    """Asigna "area" según data/areas/<bank_id>.json. Devuelve False si no hay mapeo."""
+    path = AREAS_DIR / f"{bank_id}.json"
+    if not path.exists():
+        return False
+    topic_to_area = {}
+    for area, topics in json.loads(path.read_text(encoding="utf-8")).items():
+        for topic in topics:
+            assert topic not in topic_to_area, f"Tema en dos áreas: {topic}"
+            topic_to_area[topic] = area
+    missing = sorted({q["topic"] for q in questions} - set(topic_to_area))
+    assert not missing, f"Temas sin área en {path.name}: {missing}"
+    for q in questions:
+        q["area"] = topic_to_area[q["topic"]]
+    return True
 
 
 class Bank:
@@ -81,6 +102,7 @@ class Bank:
 
     def build(self, bank_id, description):
         out = self._questions()
+        apply_areas(bank_id, out)
         by_mod, by_type = {}, {}
         for it in out:
             by_mod[it["module"]] = by_mod.get(it["module"], 0) + 1

@@ -61,6 +61,17 @@
       --c-red-800: 153 27 27;
       --c-red-900: 127 29 29;
       --c-red-950: 69 10 10;
+      --c-amber-50: 255 251 235;
+      --c-amber-100: 254 243 199;
+      --c-amber-200: 253 230 138;
+      --c-amber-300: 252 211 77;
+      --c-amber-400: 251 191 36;
+      --c-amber-500: 245 158 11;
+      --c-amber-600: 217 119 6;
+      --c-amber-700: 180 83 9;
+      --c-amber-800: 146 64 14;
+      --c-amber-900: 120 53 15;
+      --c-amber-950: 69 26 3;
       --c-white: 255 255 255;
       }
       :root[data-theme="light"] {
@@ -109,6 +120,17 @@
       --c-red-800: 254 202 202;
       --c-red-900: 254 226 226;
       --c-red-950: 254 242 242;
+      --c-amber-50: 69 26 3;
+      --c-amber-100: 120 53 15;
+      --c-amber-200: 146 64 14;
+      --c-amber-300: 180 83 9;
+      --c-amber-400: 217 119 6;
+      --c-amber-500: 245 158 11;
+      --c-amber-600: 251 191 36;
+      --c-amber-700: 252 211 77;
+      --c-amber-800: 253 230 138;
+      --c-amber-900: 254 243 199;
+      --c-amber-950: 255 251 235;
       --c-white: 15 23 42;
       }
       body { transition: background-color 0.2s ease, color 0.2s ease; }
@@ -126,7 +148,7 @@
         tailwind.config = {
           theme: {
             extend: {
-              colors: { slate: c("slate"), cyan: c("cyan"), emerald: c("emerald"), red: c("red"), white: "rgb(var(--c-white) / <alpha-value>)" },
+              colors: { slate: c("slate"), cyan: c("cyan"), emerald: c("emerald"), red: c("red"), amber: c("amber"), white: "rgb(var(--c-white) / <alpha-value>)" },
             },
           },
         };
@@ -142,7 +164,7 @@
             <h1 id="examTitle" class="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">Simulador</h1>
             <p id="examDescription" class="mt-2 max-w-2xl text-sm text-slate-300"></p>
           </div>
-          <div class="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
+          <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap md:shrink-0 md:flex-col lg:max-w-xl lg:flex-row lg:justify-end">
           <select id="themeSelect" aria-label="Tema" class="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-100 focus:border-cyan-300 focus:outline-none">
             <option value="system">🖥️ Sistema</option>
             <option value="light">☀️ Claro</option>
@@ -150,6 +172,9 @@
           </select>
           <select id="profileSelect" aria-label="Perfil" class="hidden rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-100 focus:border-cyan-300 focus:outline-none"></select>
           <select id="bankSelect" aria-label="Elegir materia y parcial" class="hidden rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-100 focus:border-cyan-300 focus:outline-none"></select>
+          <button id="statsBtn" type="button" aria-expanded="false" aria-controls="statsPanel" class="rounded-2xl border border-slate-700 bg-slate-950 px-5 py-3 text-sm font-bold text-slate-100 transition hover:border-cyan-300">
+            📊 Estadísticas
+          </button>
           <button id="restartBtn" class="rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200">
             Nuevo examen
           </button>
@@ -187,9 +212,11 @@
         </div>
       </section>
 
+      <section id="statsPanel" class="mb-6 hidden scroll-mt-4 rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-xl shadow-slate-950/30"></section>
+
       <section id="quizNav" class="mb-5 hidden rounded-3xl border border-slate-800 bg-slate-900/80 p-4 shadow-xl shadow-slate-950/30">
         <div class="mb-3 flex items-center justify-between gap-3">
-          <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Navegación</p>
+          <p id="modeLabel" class="text-xs font-bold uppercase tracking-widest text-slate-400">Navegación</p>
           <p id="navLabel" class="text-sm font-bold text-white">Pregunta 1 / 20</p>
         </div>
         <div class="flex items-center justify-between gap-3">

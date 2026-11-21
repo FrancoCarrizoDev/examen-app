@@ -1,0 +1,12 @@
+{
+  "OLAP": ["Herramientas OLAP", "Acceso OLAP", "DOLAP", "FASMI", "Almacenamiento OLAP", "Operaciones OLAP", "Drill down"],
+  "Diseño dimensional: hechos": ["Diseño dimensional", "Proceso de negocio", "Granularidad", "Hechos", "Tablas de hechos", "Métricas", "Valores NULL", "Hechos ajustados", "Tipos de tablas de hechos", "Técnicas básicas"],
+  "Diseño dimensional: dimensiones": ["Dimensiones", "Tablas de dimensión", "Claves", "Dimensión tiempo", "Dimensiones especiales", "Atributos de dimensión", "Jerarquías", "Copo de nieve"],
+  "Usuarios y soluciones de BI": ["Tipos de usuarios", "Granjeros", "Exploradores", "Mineros", "Turistas", "Productores y consumidores", "Productores", "Consumidores", "Soluciones de BI"],
+  "Ciclo de vida del BI": ["Ciclo de vida", "Planificación", "Requerimientos", "Arquitectura técnica", "Selección de productos", "Modelado multidimensional", "Diseño físico", "ETL", "Aplicación BI", "Despliegue", "Crecimiento y mantenimiento"],
+  "Core Team": ["Core Team", "Analista funcional", "Administrador de datos", "Analista QA", "Arquitecto de datos", "Modelador de datos", "DBA", "Coordinador de metadatos", "Arquitecto ETL", "Desarrollador ETL", "Arquitecto BI", "Desarrollador de aplicación BI"],
+  "Extended Team": ["Extended Team", "Arquitecto técnico", "Soporte técnico", "Data Staging"],
+  "Selección de herramientas: metodologías": ["Selección de herramienta", "Metodología de Wu", "Metodología Eckerson-Howson"],
+  "Selección de herramientas: criterios y mercado": ["Criterios de selección", "Implementador", "Mercado BI", "Productos BI", "Casos de estudio"],
+  "Proyecto de BI en la práctica": ["Relevamiento", "Análisis OLTP", "Datamart", "Presentación"]
+}

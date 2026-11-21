@@ -1,8 +1,9 @@
 """API del simulador de parciales.
 
 Sirve el frontend estático (index.html, app.js) y una API JSON bajo /api para
-perfiles y bancos de preguntas. Los resultados y las preguntas ya vistas NO van
-al servidor: quedan en el localStorage de cada navegador, separados por perfil.
+perfiles, bancos de preguntas y el historial de respuestas (estadísticas por tema).
+El último resultado y las preguntas ya vistas siguen en el localStorage de cada
+navegador, separados por perfil.
 
 Correr en desarrollo:
     .venv/bin/uvicorn server.app:app --reload --port 8000
@@ -104,6 +105,63 @@ def get_bank(bank_id: str) -> dict:
             for r in conn.execute("SELECT data FROM questions WHERE bank_id = ? ORDER BY position", (bank_id,))
         ]
         return {**bank_meta(row), "questions": questions}
+
+
+# ---------- Respuestas (estadísticas) ----------
+
+
+class AnswerIn(BaseModel):
+    profileId: int
+    bankId: str
+    questionId: str
+    selectedKeys: list[str] = Field(min_length=1, max_length=10)
+    answeredAt: str | None = None
+
+
+def answer_out(row) -> dict:
+    return {"questionId": row["question_id"], "isCorrect": bool(row["is_correct"]), "answeredAt": row["answered_at"]}
+
+
+@app.post("/api/answers", status_code=201)
+def create_answer(body: AnswerIn) -> dict:
+    """Registra una respuesta. La corrección se hace acá, contra el banco guardado."""
+    with db.session() as conn:
+        if not conn.execute("SELECT 1 FROM profiles WHERE id = ?", (body.profileId,)).fetchone():
+            raise HTTPException(404, "Perfil inexistente")
+        row = conn.execute(
+            "SELECT data FROM questions WHERE bank_id = ? AND id = ?", (body.bankId, body.questionId)
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Pregunta inexistente")
+        question = json.loads(row["data"])
+        expected = set(question.get("correctKeys") or [question["correctKey"]])
+        is_correct = set(body.selectedKeys) == expected
+        cur = conn.execute(
+            """
+            INSERT INTO answers (profile_id, bank_id, question_id, selected, is_correct, answered_at)
+            VALUES (?, ?, ?, ?, ?, COALESCE(?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')))
+            """,
+            (body.profileId, body.bankId, body.questionId, json.dumps(body.selectedKeys), int(is_correct), body.answeredAt),
+        )
+        saved = conn.execute("SELECT * FROM answers WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return answer_out(saved)
+
+
+@app.get("/api/answers")
+def list_answers(profile: int, bank: str) -> list[dict]:
+    """Historial completo del perfil en el banco, del más viejo al más nuevo."""
+    with db.session() as conn:
+        rows = conn.execute(
+            "SELECT * FROM answers WHERE profile_id = ? AND bank_id = ? ORDER BY answered_at, id",
+            (profile, bank),
+        )
+        return [answer_out(r) for r in rows]
+
+
+@app.delete("/api/answers", status_code=204)
+def delete_answers(profile: int, bank: str) -> None:
+    with db.session() as conn:
+        conn.execute("DELETE FROM answers WHERE profile_id = ? AND bank_id = ?", (profile, bank))
 
 
 # ---------- Frontend estático ----------

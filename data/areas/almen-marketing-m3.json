@@ -1,0 +1,13 @@
+{
+  "Producto y servicios": ["Producto", "Niveles de producto", "Servicios", "Clasificación de productos", "Estrategias según clasificación"],
+  "Mezcla y líneas de productos": ["Mezcla de productos", "Decisiones sobre líneas"],
+  "Marca, packaging y etiquetas": ["Marca", "Packaging y etiquetas"],
+  "Ciclo de vida del producto": ["Ciclo de vida del producto", "Proceso de adopción", "Estrategias por etapa"],
+  "Nuevos productos": ["Nuevos productos", "Desarrollo de nuevos productos"],
+  "Precio: fijación": ["Precio, valor y costo", "Condicionantes del precio", "Fijación de precios", "Métodos de fijación"],
+  "Precio: estrategias y ajustes": ["Adaptaciones y modificaciones", "Resumen de estrategias de precios"],
+  "Plaza: canal de distribución": ["Canal de distribución", "Funciones del canal", "Niveles del canal"],
+  "Plaza: diseño y administración del canal": ["Diseño del canal", "Número de intermediarios", "Decisiones administrativas", "Sistemas de canal"],
+  "Promoción: comunicación": ["Promoción", "Proceso de comunicación", "Planificación de la comunicación", "Mezcla de comunicación"],
+  "Promoción: herramientas": ["Publicidad", "Promoción de ventas", "Relaciones públicas y eventos", "Marketing directo y fuerza de ventas", "Nuevas tendencias"]
+}

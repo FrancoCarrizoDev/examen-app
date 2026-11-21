@@ -31,7 +31,11 @@ cp deploy/examen-app.service ~/.config/systemd/user/examen-app.service
 systemctl --user daemon-reload
 systemctl --user enable --quiet examen-app.service
 systemctl --user restart examen-app.service
-sleep 2
+# En la Pi uvicorn tarda unos segundos en levantar.
+for _ in $(seq 1 20); do
+  curl -fsS http://localhost:8080/api/health >/dev/null 2>&1 && break
+  sleep 2
+done
 systemctl --user --no-pager --lines=0 status examen-app.service | head -3
 curl -fsS http://localhost:8080/api/health && echo
 git status --short --branch

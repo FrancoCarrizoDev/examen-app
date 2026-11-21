@@ -1,6 +1,14 @@
 {
   "banks": [
     {
+      "id": "bd2-parcial2",
+      "title": "Bases de Datos II – Parcial 2",
+      "subject": "Bases de Datos II",
+      "exam": "Simulador Parcial 2",
+      "description": "20 preguntas al azar de M3 (OLAP, FASMI, diseño dimensional, tipos de usuarios y soluciones) y M4 (ciclo de vida del BI, Core/Extended Team, selección de herramientas).",
+      "file": "data/banks/bd2-parcial2.json"
+    },
+    {
       "id": "auditoria-parcial2",
       "title": "Auditoría de Sistemas – Parcial 2",
       "subject": "Auditoría de Sistemas",

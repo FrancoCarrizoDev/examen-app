@@ -4,56 +4,46 @@ Simulador de parciales multiple choice para varias materias. Se elige la materia
 
 ## Cómo usar
 
-Desde esta carpeta:
+La app tiene dos modos:
+
+- **Con servidor (Raspberry):** FastAPI + SQLite con los perfiles y los bancos. Cada perfil ve sus materias (y las que no tienen dueño). El último resultado y las preguntas ya vistas quedan en el `localStorage` del navegador, separados por perfil.
+- **Estático (GitHub Pages o `python3 -m http.server`):** sin perfiles; carga los JSON de `data/` y guarda todo en `localStorage`. El frontend detecta solo si hay servidor (`/api/health`).
+
+### Local con servidor
 
 ```bash
-python3 -m http.server 8000
+python3 -m venv .venv && .venv/bin/pip install -r server/requirements.txt
+.venv/bin/python -m server.import_banks --all --owner Fran
+.venv/bin/uvicorn server.app:app --reload --port 8000
 ```
 
-Después abrir:
-
-```text
-http://localhost:8000
-```
-
-Nota: si abrís `index.html` con doble click, algunos navegadores bloquean la carga de `data/questions.json` por `file://`.
+La base queda en `var/examen.db` (fuera de git).
 
 ## Raspberry Pi
 
-La app está pensada para servirse como sitio estático. En la Raspberry:
+Abrir desde cualquier dispositivo de la red: `http://raspy.local:8080` (la IP puede cambiar; el nombre no).
+
+Corre como servicio de usuario systemd (`deploy/examen-app.service`) y arranca solo al prender la Pi. Para actualizar, desde la Mac:
 
 ```bash
-cd /home/fran/parcial2-quiz
-python3 -m http.server 8080 --bind 0.0.0.0
-```
-
-Abrir desde cualquier dispositivo de la red:
-
-```text
-http://192.168.0.86:8080
-```
-
-### Flujo de actualización con Git
-
-Desde la Mac:
-
-```bash
-git add .
-git commit -m "mensaje"
 git push
-./scripts/update_raspberry.sh
+./scripts/update_raspberry.sh            # trae el código, instala dependencias y reinicia
+./scripts/update_raspberry.sh --import   # además recarga los bancos de data/banks/*.json
 ```
 
-El script entra por SSH a la Raspberry y ej## Bancos
+La primera vez el script crea el entorno, importa los bancos y registra el servicio. Ver logs en la Pi: `journalctl --user -u examen-app -f`.
+
+## Bancos
 
 - `data/banks.json`: lista de bancos que aparecen en el selector (id, título, materia, descripción y archivo).
 - `data/banks/<id>.json`: preguntas de cada banco.
-- Cada banco guarda su último resultado por separado en `localStorage`.
+- `server/import_banks.py`: carga esos JSON en la base del servidor (valida ids, opciones y respuesta correcta).
 
 | Banco | Origen |
 | --- | --- |
 | `ingenieria-software-parcial2` | Microsoft Forms curados con `scripts/ingenieria_software/` y `knowledge/ingenieria_software/`. 175 preguntas (M3: 88, M4: 87). |
 | `auditoria-parcial2` | Lecturas M3 y M4 de Auditoría + preguntero de Studocu; fuente en `facu/auditoria_de_sistemas/parcial2-quiz/scripts/`. |
+| `bd2-parcial2` | Lecturas M3 y M4 de Bases de Datos II + 3 pregunteros de Studocu; fuente en `facu/base_de_datos_2/parcial2-quiz/scripts/`. 366 preguntas (M3: 184, M4: 182). |
 | `soa-parcial2` | Lecturas de SOA; fuente en `facu/sistemas_operativos_avanzados/parcial2-quiz/scripts/`. |
 
 ### Agregar una materia

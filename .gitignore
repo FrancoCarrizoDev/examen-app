@@ -8,3 +8,6 @@ data/_raw/
 data/_batches/
 data/questions-raw.json
 data/questions-curated.json
+.venv/
+var/
+__pycache__/
